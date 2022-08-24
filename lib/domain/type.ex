@@ -1,25 +1,9 @@
 defmodule Domain.Type do
   defstruct [:type]
 
-  @type t :: %__MODULE__{
-    type: String.t()
-  }
+  @type t :: String.t()
 
-  @spec new(String.t()) :: t | Exception.t()
-  def new(type) when type == "buy" do
-    %__MODULE__{
-      type: type
-    }
-  end
-
-  def new(type) when type == "sell" do
-    %__MODULE__{
-      type: type
-    }
-  end
-
-  def new(_type) do
-    raise "Operation type not supported"
-  end
-
+  @spec validate(String.t()) :: t | Exception.t()
+  def validate(type) when type in ["buy", "sell"], do: type
+  def validate(_type), do: raise "Operation type not supported"
 end

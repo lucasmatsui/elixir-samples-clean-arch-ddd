@@ -7,11 +7,11 @@ defmodule Domain.Entities.Operation do
 
   @type t :: %__MODULE__{
     type: Type.t(),
-    unit_cost: number(),
-    quantity: Float.t(),
+    unit_cost: float(),
+    quantity: integer(),
   }
 
-  @spec new(Type.t(), number(), Float.t()) :: t
+  @spec new(Type.t(), float(), integer()) :: t
   def new(type, unit_cost, quantity) do
     %__MODULE__{
       type: type,
@@ -20,22 +20,39 @@ defmodule Domain.Entities.Operation do
     }
   end
 
+  @spec calculate_tax(t, float()) :: nil
+  def calculate_tax(operation, weighted_average_price) do
+
+
+  end
+
   @spec weighted_average_price([t]) :: number()
   def weighted_average_price(operations) do
-    mult_shares_unit_cost_and_sum(operations) / all_shares(operations)
+    result = mult_shares_unit_cost_and_sum(operations) / all_buy_shares(operations)
+
+    result
+    |> Decimal.from_float()
+    |> Decimal.round(2, :ceiling)
+    |> Decimal.to_float()
   end
 
-  @spec mult_shares_unit_cost_and_sum([t]) :: number()
-  def mult_shares_unit_cost_and_sum(operations) do
-    Enum.reduce(operations, 0, fn operation, acc ->
-      (operation.quantity * operation.unit_cost) + acc
-    end)
+  defp mult_shares_unit_cost_and_sum(operations) do
+    Enum.reduce(operations, 0, &mult_only_buy_shares(&1, &2))
   end
 
-  @spec all_shares([t]) :: number()
-  def all_shares(operations) do
-    Enum.reduce(operations, 0, fn operation, acc ->
-      operation.quantity + acc
-    end)
+  defp mult_only_buy_shares(operation, acc) when operation.type == "buy" do
+    (operation.quantity * operation.unit_cost) + acc
   end
+
+  defp mult_only_buy_shares(_operation, acc), do: acc
+
+  defp all_buy_shares(operations) do
+    Enum.reduce(operations, 0, &sum_only_buy_shares(&1, &2))
+  end
+
+  defp sum_only_buy_shares(operation, acc) when operation.type == "buy" do
+    operation.quantity + acc
+  end
+
+  defp sum_only_buy_shares(_operation, acc), do: acc
 end

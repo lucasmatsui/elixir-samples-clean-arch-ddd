@@ -13,17 +13,31 @@ defmodule Application.UseCases.CalculateTaxPerOperation do
   end
 
   defp calculate_tax_per_operation(list) do
-    list
-    |> Enum.map(fn operation ->
+    weighted_average_price =
+      list
+      |> list_operation_entities()
+      |> Operation.weighted_average_price()
+
+    Enum.map(list, fn operation ->
       Operation.new(
-        Type.new(operation.operation),
+        Type.validate(operation.operation),
+        operation.unit_cost,
+        operation.quantity
+      )
+      |> Operation.calculate_tax(weighted_average_price)
+    end)
+
+    CalculateTaxPerOperationOutput.new(1)
+  end
+
+  @spec list_operation_entities([CalculateTaxPerOperationInput.t()]) :: [Operation.t()]
+  defp list_operation_entities(operations) do
+    Enum.map(operations, fn operation ->
+      Operation.new(
+        Type.validate(operation.operation),
         operation.unit_cost,
         operation.quantity
       )
     end)
-    |> Operation.weighted_average_price()
-
-
-    CalculateTaxPerOperationOutput.new(1)
   end
 end
