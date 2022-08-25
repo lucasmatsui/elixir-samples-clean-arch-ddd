@@ -20,14 +20,8 @@ defmodule Domain.Entities.Operation do
     }
   end
 
-  @spec calculate_tax(t, float()) :: nil
-  def calculate_tax(operation, weighted_average_price) do
-
-
-  end
-
-  @spec weighted_average_price([t]) :: number()
-  def weighted_average_price(operations) do
+  @spec weighted_average_purchase_price([t]) :: number()
+  def weighted_average_purchase_price(operations) do
     result = mult_shares_unit_cost_and_sum(operations) / all_buy_shares(operations)
 
     result
@@ -43,7 +37,6 @@ defmodule Domain.Entities.Operation do
   defp mult_only_buy_shares(operation, acc) when operation.type == "buy" do
     (operation.quantity * operation.unit_cost) + acc
   end
-
   defp mult_only_buy_shares(_operation, acc), do: acc
 
   defp all_buy_shares(operations) do
@@ -53,6 +46,5 @@ defmodule Domain.Entities.Operation do
   defp sum_only_buy_shares(operation, acc) when operation.type == "buy" do
     operation.quantity + acc
   end
-
   defp sum_only_buy_shares(_operation, acc), do: acc
 end

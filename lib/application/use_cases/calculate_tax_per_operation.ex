@@ -3,7 +3,10 @@ defmodule Application.UseCases.CalculateTaxPerOperation do
     CalculateTaxPerOperationInput,
     CalculateTaxPerOperationOutput
   }
-  alias Domain.Entities.Operation
+  alias Domain.Entities.{
+    Operation,
+    Tax
+  }
   alias Domain.Type
   alias Decimal
 
@@ -13,21 +16,15 @@ defmodule Application.UseCases.CalculateTaxPerOperation do
   end
 
   defp calculate_tax_per_operation(list) do
-    weighted_average_price =
-      list
-      |> list_operation_entities()
-      |> Operation.weighted_average_price()
+    list
+    |> list_operation_entities()
+    |> Tax.calculate_tax(weighted_average_purchase_price(list))
+  end
 
-    Enum.map(list, fn operation ->
-      Operation.new(
-        Type.validate(operation.operation),
-        operation.unit_cost,
-        operation.quantity
-      )
-      |> Operation.calculate_tax(weighted_average_price)
-    end)
-
-    CalculateTaxPerOperationOutput.new(1)
+  defp weighted_average_purchase_price(list) do
+    list
+    |> list_operation_entities()
+    |> Operation.weighted_average_purchase_price()
   end
 
   @spec list_operation_entities([CalculateTaxPerOperationInput.t()]) :: [Operation.t()]
