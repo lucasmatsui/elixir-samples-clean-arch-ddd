@@ -4,11 +4,10 @@ defmodule Domain.Entities.Operation do
   @required_fields [:type, :unit_cost, :quantity]
   @enforce_keys @required_fields
   defstruct @required_fields
-
   @type t :: %__MODULE__{
     type: Type.t(),
     unit_cost: float(),
-    quantity: integer(),
+    quantity: integer()
   }
 
   @spec new(Type.t(), float(), integer()) :: t

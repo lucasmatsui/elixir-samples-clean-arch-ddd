@@ -18,13 +18,7 @@ defmodule Application.UseCases.CalculateTaxPerOperation do
   defp calculate_tax_per_operation(list) do
     list
     |> list_operation_entities()
-    |> Tax.calculate_tax(weighted_average_purchase_price(list))
-  end
-
-  defp weighted_average_purchase_price(list) do
-    list
-    |> list_operation_entities()
-    |> Operation.weighted_average_purchase_price()
+    |> Tax.calculate_tax()
   end
 
   @spec list_operation_entities([CalculateTaxPerOperationInput.t()]) :: [Operation.t()]
