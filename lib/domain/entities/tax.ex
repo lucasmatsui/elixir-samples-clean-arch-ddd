@@ -6,61 +6,62 @@ defmodule Domain.Entities.Tax do
   defstruct @required_fields
 
   @twenty_percent_profit_tax 0.2
+  @zero_tax 0
 
   @type t :: %__MODULE__{
     tax: number(),
   }
 
+  @spec calculate_taxs([Operation.t()]) :: list()
+  def calculate_taxs(operations) do
+    all_state_agents = Operation.start_all_agents_links()
 
-  @spec calculate_tax([Operation.t()]) :: list()
-  def calculate_tax(operations) do
-    {:ok, damage} = Agent.start_link(fn -> 0 end)
-    {:ok, average_purchase_price} = Agent.start_link(fn -> 0 end)
-    {:ok, list_of_buy} = Agent.start_link(fn -> [] end)
-
-    Enum.map(operations, fn operation ->
-      IO.inspect(operation)
-      if operation.type == "buy" do
-        Agent.update(list_of_buy, fn list -> [operation | list] end)
-        operations_list = Agent.get(list_of_buy, fn list -> list end)
-        Agent.update(average_purchase_price, fn _number -> Operation.weighted_average_purchase_price(operations_list) end)
-      end
-
-      weighted_average_purchase_price = Agent.get(average_purchase_price, fn number -> number end)
-      IO.inspect(weighted_average_purchase_price, label: "weighted_average_purchase_price")
-
-      has_damage = operation.unit_cost < weighted_average_purchase_price
-      has_profit = operation.unit_cost > weighted_average_purchase_price
-
-      cond do
-        operation.type == "buy" -> 0
-        has_damage ->
-          Agent.update(damage, fn number ->
-            IO.inspect(number, label: "damage_state")
-            (calculate_damage(operation, weighted_average_purchase_price) + number) |> IO.inspect(label: "damage") end)
-          0
-        has_profit ->
-          profit = calculate_profit(operation, weighted_average_purchase_price)
-          damages_to_pay = Agent.get(damage, fn number -> number |> IO.inspect(label: "damage_to_pai") end)
-          result = (damages_to_pay + profit)
-
-          if result > 0 do
-            result * @twenty_percent_profit_tax
-          else
-            Agent.update(damage, fn _number -> result end)
-            0
-          end
-        true -> 0
-      end
-    end)
-    |> IO.inspect()
+    Enum.map(operations, &calculate_tax(&1, all_state_agents))
   end
 
-  defp calculate_profit(operation, weighted_average_purchase_price) do
-    ((operation.unit_cost - weighted_average_purchase_price) * operation.quantity) |> IO.inspect(label: "calculate_profit")
+  defp calculate_tax(operation, all_state_agents) do
+    maybe_buy_operation(all_state_agents, operation)
+
+    cond do
+      operation.type == "buy" -> @zero_tax
+      Operation.has_damage(all_state_agents.average_purchage, operation.unit_cost) ->
+        calculate_damage(all_state_agents, operation)
+      Operation.has_profit(all_state_agents.average_purchage, operation.unit_cost) ->
+        calculte_profit(all_state_agents, operation)
+      true -> @zero_tax
+    end
   end
 
-  defp calculate_damage(operation, weighted_average_purchase_price) do
-    (operation.unit_cost - weighted_average_purchase_price) * operation.quantity
+  defp calculate_damage(all_state_agents, operation) do
+    calculate_damage = Operation.calculate_damage(all_state_agents.average_purchage, operation)
+    Operation.change_damage(all_state_agents.damage, calculate_damage, [increment: true])
+    @zero_tax
+  end
+
+  defp calculte_profit(all_state_agents, operation) do
+    cond do
+      Operation.total_operation(operation) >= 20_000 ->
+        damages_minus_profit = Operation.damages_minus_profit(all_state_agents, operation)
+        maybe_pay_tax(all_state_agents.damage, damages_minus_profit)
+      true -> @zero_tax
+    end
+  end
+
+  defp maybe_buy_operation(all_state_agents, operation) when operation.type == "buy" do
+    Operation.calculate_weighted_average_purchase_price(
+      all_state_agents,
+      operation
+    )
+  end
+
+  defp maybe_buy_operation(_, _), do: nil
+
+  defp maybe_pay_tax(_damage, damages_minus_profit) when damages_minus_profit > 0 do
+    damages_minus_profit * @twenty_percent_profit_tax
+  end
+
+  defp maybe_pay_tax(damage, result) do
+    Operation.change_damage(damage, result)
+    @zero_tax
   end
 end

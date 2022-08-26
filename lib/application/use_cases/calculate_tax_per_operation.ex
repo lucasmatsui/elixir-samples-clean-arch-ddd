@@ -16,9 +16,14 @@ defmodule Application.UseCases.CalculateTaxPerOperation do
   end
 
   defp calculate_tax_per_operation(list) do
-    list
-    |> list_operation_entities()
-    |> Tax.calculate_tax()
+    calculated_operations =
+      list
+      |> list_operation_entities()
+      |> Tax.calculate_taxs()
+
+    Enum.map(calculated_operations, fn operation ->
+      CalculateTaxPerOperationOutput.new(operation)
+    end)
   end
 
   @spec list_operation_entities([CalculateTaxPerOperationInput.t()]) :: [Operation.t()]
