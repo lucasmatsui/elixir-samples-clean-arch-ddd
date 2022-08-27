@@ -60,8 +60,8 @@ defmodule Domain.Entities.Tax do
     damages_minus_profit * @twenty_percent_profit_tax
   end
 
-  defp maybe_pay_tax(damage, result) do
-    Operation.change_damage(damage, result)
+  defp maybe_pay_tax(damage, damages_minus_profit) do
+    Operation.change_damage(damage, damages_minus_profit)
     @zero_tax
   end
 end
