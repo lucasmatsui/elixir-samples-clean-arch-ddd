@@ -44,9 +44,12 @@ defmodule Domain.Entities.Operation do
     operation.unit_cost * operation.quantity
   end
 
-  @spec damages_minus_profit(agents, t) :: number()
-  def damages_minus_profit(all_state_agents, %__MODULE__{} = operation) do
-   damages_to_pay(all_state_agents.damage) + calculate_profit(all_state_agents.average_purchage, operation)
+  @spec profit_after_damages(map()) :: number()
+  def profit_after_damages(agents_operation) do
+    damage = agents_operation.agents.damage
+    average_purchage = agents_operation.agents.average_purchage
+
+    damages_to_pay(damage) + calculate_profit(average_purchage, agents_operation.operation)
   end
 
   defp damages_to_pay(agent) do
@@ -58,8 +61,8 @@ defmodule Domain.Entities.Operation do
     unit_cost < get_state(agent)
   end
 
-  def has_profit(agent, unit_cost) do
-    unit_cost > get_state(agent)
+  def has_profit(agents_operation) do
+    agents_operation.operation.unit_cost > get_state(agents_operation.agents.average_purchage)
   end
 
   def calculate_damage(agent, operation) do
@@ -70,7 +73,7 @@ defmodule Domain.Entities.Operation do
     ((operation.unit_cost - get_state(agent)) * operation.quantity)
   end
 
-  def change_damage(agent, damage, opts \\ [increment: false]) do
+  def update_damage(agent, damage, opts \\ [increment: false]) do
     cond do
       opts[:increment] == true ->
         Agent.update(agent, fn number -> (damage + number) end)
@@ -79,10 +82,13 @@ defmodule Domain.Entities.Operation do
     end
   end
 
-  def calculate_weighted_average_purchase_price(all_state_agents, operation) do
-    Agent.update(all_state_agents.list_shares_purchased, fn list -> [operation | list] end)
-    operations_list = Agent.get(all_state_agents.list_shares_purchased, fn list -> list end)
-    Agent.update(all_state_agents.average_purchage, fn _number ->
+  def calculate_weighted_average_purchase_price(agents_operation) do
+    list_shares_purchased = agents_operation.agents.list_shares_purchased
+    average_purchage = agents_operation.agents.average_purchage
+
+    Agent.update(list_shares_purchased, fn list -> [agents_operation.operation | list] end)
+    operations_list = Agent.get(list_shares_purchased, fn list -> list end)
+    Agent.update(average_purchage, fn _number ->
       result = mult_shares_unit_cost_and_sum(operations_list) / all_buy_shares(operations_list)
 
       result
