@@ -1,4 +1,4 @@
-# Exilir Samples with Clean Arch/DDD
+# Elixir Samples with Clean Arch/DDD
 
 **TODO: Add description**
 
